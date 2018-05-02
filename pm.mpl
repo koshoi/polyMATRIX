@@ -1,25 +1,6 @@
 with(LinearAlgebra);
+with(ListTools);
 with(Student[LinearAlgebra]);
-
-mDegree := proc(mtr :: Matrix) :: Matrix;
-	map(degree, mtr);
-end proc;
-
-lowestDegree := proc(mtr :: Matrix) :: Vector;
-	local mdgr := mDegree(mtr);
-	local i := 1, j := 1;
-	local icore := 1, jcore := 1;
-	local ldegree := mdgr[1, 1];
-	for i to RowDimension(mtr) do
-		for j to ColumnDimension(mtr) do
-			if (mdgr[i, j] < ldegree and mdgr[i, j] >= 0) then
-				ldegree := mdgr[i, j];
-				icore := i; jcore := j;
-			end if;
-		end do;
-	end do;
-	(icore, jcore);
-end proc;
 
 isDiagonal := proc(mtr :: Matrix) :: Boolean;
 	local i := 1, j := 1;
@@ -83,26 +64,24 @@ iterationMatrix := proc(amtr :: Matrix) :: Vector(Boolean, Matrix), list;
 	local iterator;
 	local mtr := map(normal, amtr);
 	if (not finishedColumn(mtr)) then
-		#print("UNFINISHED COLUMN", mtr);
 		iterator := Matrix(max(Dimension(mtr)), shape = identity);
 		i := nonZero(Column(mtr, 1));
 		if (mtr[1,1] <> 0) then
 			coef := mtr[1, 1];
+			restrictions := [coef <> 0];
 			iterator := normal(AddRow(iterator, i, 1, -mtr[i, 1] / coef));
-			#print("coef->", coef, "iterator->", iterator);
 			return (true, iterator), restrictions;
 		else
 			iterator := normal(SwapRow(iterator, 1, i));
 			return (true, iterator), restrictions;
 		end if;
 	elif (not finishedRow(mtr)) then
-		#print("UNFINISHED ROW", mtr);
 		iterator := Matrix(min(Dimension(mtr)), shape = identity);
 		j := nonZero(Row(mtr, 1));
 		if (mtr[1,1] <> 0) then
 			coef := mtr[1, 1];
+			restrictions := [coef <> 0];
 			iterator := normal(Transpose(AddRow(iterator, j, 1, -mtr[1, j] / coef)));
-			#print("coef->", coef, "iterator->", iterator);
 			return (false, iterator), restrictions;
 		else
 			iterator := normal(Transpose(SwapRow(iterator, 1, j)));
@@ -110,12 +89,13 @@ iterationMatrix := proc(amtr :: Matrix) :: Vector(Boolean, Matrix), list;
 		end if;
 	else
 		if (max(Dimension(mtr)) = 1) then;
-			return (true, Matrix(1, 1, 1));
+			return (true, Matrix(1, 1, 1)), restrictions;
 		elif (isDiagonal(mtr)) then;
-			return (true, Matrix(max(Dimension(mtr)), shape = identity));
+			return (true, Matrix(max(Dimension(mtr)), shape = identity)), restrictions;
 		else
 			iterator := iterationMatrix(simpleSubMatrix(mtr));
-			return (iterator[1], normal(diagonalConcat(iterator[2])));
+			restrictions := iterator[3];
+			return (iterator[1], normal(diagonalConcat(iterator[2]))), restrictions;
 		end if;
 	end if;
 	(true, Matrix(max(Dimension(mtr)), shape = identity));
@@ -172,17 +152,21 @@ fullCycle := proc(mtr::Matrix) :: list;
 	local iterator := (true, Matrix([[1, 1], [1, 1]]), []);
 	local right := [];
 	local left := [];
+	local restrictions := [];
+	local new_restrictions := [];
+	local extra_restrictions := [];
 	while (not isDiagonal(result) and not isDiagonal(iterator[2])) do
 		iterator := iterationMatrix(result);
 		result := iterate(result, iterator);
 		print("result->", result, iterator);
+		restrictions := [op(restrictions), op(iterator[3])];
 		if (iterator[1]) then
 			left := [op(left), reverseAction(iterator[2])];
 		else
 			right := [reverseAction(iterator[2]), op(right)];
 		end if;
 	end do;
-	return [op(left), map(normal, result), op(right)];
+	return [op(left), map(normal, result), op(right)], MakeUnique(restrictions);
 end proc;
 
 mulMatrixVector := proc(mvec :: list) :: Matrix;
