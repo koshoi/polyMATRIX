@@ -158,7 +158,6 @@ fullCycle := proc(mtr::Matrix) :: list;
 	while (not isDiagonal(result) and not isDiagonal(iterator[2])) do
 		iterator := iterationMatrix(result);
 		result := iterate(result, iterator);
-		print("result->", result, iterator);
 		restrictions := [op(restrictions), op(iterator[3])];
 		if (iterator[1]) then
 			left := [op(left), reverseAction(iterator[2])];
@@ -174,7 +173,6 @@ mulMatrixVector := proc(mvec :: list) :: Matrix;
 	local i;
 	for i from 2 to nops(mvec) do
 		result := result . mvec[i];
-		#print(i, "->", result, mvec[i], result . mvec[i] );
 	end do;
 	return result;
 end proc;
