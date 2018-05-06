@@ -163,20 +163,6 @@ reverseAction := proc(mtr :: Matrix) :: Matrix;
 	mtr;
 end proc;
 
-recycle := proc(mtr :: Matrix) :: list;
-	local result := map(normal, mtr);
-	local iterator := iterationMatrix(result);
-	if (not isDiagonal(result) and not isDiagonal(iterator[2])) then
-		if (iterator[1]) then
-			return [iterator[2], op(recycle(iterate(result, iterator)))];
-		else
-			return [op(recycle(iterate(result, iterator))), iterator[2]];
-		end if;
-	else
-		return [result];
-	end if;
-end proc;
-
 fullCycle := proc(mtr :: Matrix) :: Matrix;
 	local result := mtr;
 	local iterator := (true, Matrix([[1, 1], [1, 1]]));
@@ -188,8 +174,17 @@ fullCycle := proc(mtr :: Matrix) :: Matrix;
 		if (iterator[1]) then
 			left := [op(left), reverseAction(iterator[2])];
 		else
-			right := [reverseAction(iterator[2], op(right))];
+			right := [reverseAction(iterator[2]), op(right)];
 		end if;
 	end do;
 	return [op(left), map(normal, result), op(right)];
+end proc;
+
+mulMatrixVector := proc(mvec :: list) :: Matrix;
+	local result := mvec[1];
+	local i;
+	for i from 2 to nops(mvec) do
+		result := result . mvec[i];
+	end do;
+	return result;
 end proc;
